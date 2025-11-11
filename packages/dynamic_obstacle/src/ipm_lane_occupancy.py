@@ -8,8 +8,8 @@ from sensor_msgs.msg import Image, CompressedImage
 from std_msgs.msg import Bool
 from cv_bridge import CvBridge
 from duckietown.dtros import DTROS, NodeType
-from utils.ipm import homography, warp_to_ground
-from utils.filters import HoldTrue
+from dynamic_obstacle.utils.ipm import homography, warp_to_ground
+from dynamic_obstacle.utils.filters import HoldTrue
 
 class OppLaneIPM(DTROS):
     def __init__(self, node_name):
