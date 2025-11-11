@@ -16,9 +16,10 @@ catkin_package()
 include_directories(${catkin_INCLUDE_DIRS})
 
 install(PROGRAMS
-  nodes/tof_reader.py
-  nodes/ipm_lane_occupancy.py
-  nodes/controller_pp.py
-  nodes/fsm_avoid.py
+  src/tof_reader.py
+  src/ipm_lane_occupancy.py
+  src/controller_pp.py
+  src/fsm_avoid.py
+  src/wheel_encoder_reader_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

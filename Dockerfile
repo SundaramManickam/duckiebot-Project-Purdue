@@ -1,7 +1,7 @@
 # parameters
-ARG REPO_NAME="<REPO_NAME_HERE>"
-ARG DESCRIPTION="<DESCRIPTION_HERE>"
-ARG MAINTAINER="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"
+ARG REPO_NAME="duckiebot-Project-Purdue"
+ARG DESCRIPTION="ece59500cv"
+ARG MAINTAINER="mayank (pratapm@purdue.edu)"
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 ARG ICON="cube"
 
@@ -20,7 +20,7 @@ FROM ${DOCKER_REGISTRY}/duckietown/${BASE_IMAGE}:${BASE_TAG} as base
 # recall all arguments
 ARG DISTRO
 ARG REPO_NAME
-ARG DESCRIPTION
+ARG DESCRIPTION_HERE
 ARG MAINTAINER
 ARG ICON
 ARG BASE_TAG
