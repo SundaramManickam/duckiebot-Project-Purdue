@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   duckietown_msgs
   cv_bridge
   image_transport
+  dynamic_obstacle
 )
 
 catkin_package()
