@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>duckie_race_avoid</name>
+  <name>dynamic_obstacle</name>
   <version>0.1.0</version>
   <description>Lightweight ToF+Camera avoidance and overtake FSM for Duckiebot</description>
   <maintainer email="you@example.com">You</maintainer>

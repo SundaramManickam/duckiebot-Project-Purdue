@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(duckie_race_avoid)
+project(dynamic_obstacle)  # must match package.xml <name>
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   duckietown_msgs
   cv_bridge
   image_transport
-  dynamic_obstacle
 )
 
 catkin_package()
