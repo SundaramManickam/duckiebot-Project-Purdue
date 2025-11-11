@@ -14,3 +14,4 @@
   <node pkg="dynamic_obstacle" type="fsm_avoid.py" name="fsm_avoid" output="screen"/>
 
 </launch>
+

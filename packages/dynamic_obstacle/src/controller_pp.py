@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
+import os
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32
 from duckietown_msgs.msg import LanePose
+from duckietown.dtros import DTROS, NodeType
 
-class ControllerPP:
-    def __init__(self):
+class ControllerPP(DTROS):
+    def __init__(self, node_name):
+        super(ControllerPP, self).__init__(
+            node_name=node_name,
+            node_type=NodeType.CONTROL
+        )
+        self._vehicle_name = os.environ['VEHICLE_NAME']
         p = rospy.get_param
         self.k_phi = float(p("k_phi", 2.5))
         self.k_d   = float(p("k_d", 2.0))
@@ -19,11 +26,13 @@ class ControllerPP:
         self.lateral_bias = 0.0
         self.speed_cap = self.v_nominal
 
-        rospy.Subscriber("/lane_pose", LanePose, self.pose_cb, queue_size=1)
-        rospy.Subscriber("/fsm/lateral_offset", Float32, self.bias_cb, queue_size=1)
-        rospy.Subscriber("/fsm/speed_cap", Float32, self.speed_cb, queue_size=1)
+        lane_pose_topic = p("topics/lane_pose", f"/{self._vehicle_name}/lane_filter_node/lane_pose")
+        rospy.Subscriber(lane_pose_topic, LanePose, self.pose_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/fsm/lateral_offset", Float32, self.bias_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/fsm/speed_cap", Float32, self.speed_cb, queue_size=1)
 
-        self.pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+        cmd_vel_topic = p("topics/cmd_vel_out", f"/{self._vehicle_name}/wheels_driver_node/wheels_cmd")
+        self.pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
 
     def pose_cb(self, msg):
         self.d = msg.d - self.lateral_bias
@@ -49,5 +58,6 @@ class ControllerPP:
             rate.sleep()
 
 if __name__ == "__main__":
-    rospy.init_node("controller_pp")
-    ControllerPP().run()
+    node = ControllerPP(node_name='controller_pp')
+    node.run()
+    rospy.spin()

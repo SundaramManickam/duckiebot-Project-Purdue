@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-import rospy, time
+import os
+import rospy
+import time
 from sensor_msgs.msg import Range
-from std_msgs.msg import Bool, String
-class FSM:
+from std_msgs.msg import Bool, String, Float32
+from duckietown.dtros import DTROS, NodeType
+
+class FSM(DTROS):
     DRIVE, YIELD, OVERTAKE, RECOVER = "DRIVE","YIELD","OVERTAKE","RECOVER"
 
-    def __init__(self):
+    def __init__(self, node_name):
+        super(FSM, self).__init__(
+            node_name=node_name,
+            node_type=NodeType.BEHAVIOR
+        )
+        self._vehicle_name = os.environ['VEHICLE_NAME']
         p = rospy.get_param
         self.slow = float(p("slowdown_dist",0.7))
         self.stop = float(p("stop_dist",0.48))
@@ -20,14 +29,14 @@ class FSM:
         self.opp_free = False
         self.green = True  # assume green if not wired
 
-        tof_topic = p("topics/tof_range", "/dragon/bottom_tof_driver_node/range")
+        tof_topic = p("topics/tof_range", f"/{self._vehicle_name}/bottom_tof_driver_node/range")
         rospy.Subscriber(tof_topic, Range, self.tof_cb, queue_size=1)
-        rospy.Subscriber("/opp_lane_free", Bool, self.opp_cb, queue_size=1)
-        rospy.Subscriber("/traffic_light_state", Bool, self.tl_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/opp_lane_free", Bool, self.opp_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/traffic_light_state", Bool, self.tl_cb, queue_size=1)
 
-        self.pub_bias = rospy.Publisher("/fsm/lateral_offset", Float32, queue_size=1)
-        self.pub_speed= rospy.Publisher("/fsm/speed_cap", Float32, queue_size=1)
-        self.pub_state= rospy.Publisher("/fsm/state", String, queue_size=1)
+        self.pub_bias = rospy.Publisher(f"/{self._vehicle_name}/fsm/lateral_offset", Float32, queue_size=1)
+        self.pub_speed= rospy.Publisher(f"/{self._vehicle_name}/fsm/speed_cap", Float32, queue_size=1)
+        self.pub_state= rospy.Publisher(f"/{self._vehicle_name}/fsm/state", String, queue_size=1)
 
         self.state = self.DRIVE
         self.t_enter = time.time()
@@ -101,5 +110,6 @@ class FSM:
             rate.sleep()
 
 if __name__ == "__main__":
-    rospy.init_node("fsm_avoid")
-    FSM().run()
+    node = FSM(node_name='fsm_avoid')
+    node.run()
+    rospy.spin()
