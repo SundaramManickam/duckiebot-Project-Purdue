@@ -4,7 +4,7 @@
 
   <!-- Opposite-lane occupancy via IPM (camera -> /opp_lane_free) -->
   <node pkg="dynamic_obstacle" type="ipm_lane_occupancy.py" name="ipm_opp" output="screen">
-    <param name="camera_topic" value="$(arg camera_topic)" if="$(arg camera_topic)"/>
+    <!--param name="camera_topic" value="$(arg camera_topic)" if="$(arg camera_topic)"/-->
   </node>
 
   <!-- Controller (lane following + temporary lateral offset during overtake) -->
