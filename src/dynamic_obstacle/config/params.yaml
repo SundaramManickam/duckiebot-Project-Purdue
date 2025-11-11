@@ -1,0 +1,46 @@
+# --- ToF thresholds (meters) ---
+slowdown_dist: 0.70
+stop_dist: 0.48
+release_margin: 0.05    # hysteresis release
+
+# --- Overtake gating ---
+opp_clear_hold_s: 0.5   # need this much continuous 'clear' before overtake
+pass_length_m: 0.60     # distance to travel while offset before returning
+max_cross_time_s: 2.0
+
+# --- Controller ---
+control_rate_hz: 30
+v_nominal: 0.25         # m/s during DRIVE
+v_cross: 0.18           # m/s while across yellow
+yawrate_limit: 1.8      # rad/s
+lookahead_m: 0.30       # pure pursuit lookahead
+lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
+k_phi: 2.5              # simple PID/P control gains if using (d,phi)
+k_d:  2.0
+
+# --- IPM + occupancy ---
+ipm:
+  # 4 image points (pixels) in order: top-left, top-right, bottom-right, bottom-left
+  src_pts: [[240,160],[400,160],[480,360],[160,360]]
+  # corresponding ground plane coords in meters (relative to camera) for a flat floor
+  dst_pts: [[-0.25,0.60],[0.25,0.60],[0.35,0.05],[-0.35,0.05]]
+
+opp_lane_roi:           # polygon on ground plane to test occupancy
+  # a simple rectangle polygon on the opposite lane (y forward, x left)
+  pts_m: [[0.05,0.55],[0.30,0.55],[0.30,0.15],[0.05,0.15]]
+
+mask:
+  min_area_px: 350      # blob area threshold after IPM & binary mask
+  morph_kernel: 3       # simple open/close kernel size
+  hsv:
+    # loose mask for cones/robots/obstacles; tune on-site
+    low:  [0,  40, 40]
+    high: [30, 255,255]
+
+topics:
+  camera: /camera/image_raw
+  lane_pose: /lane_pose
+  cmd_vel_out: /cmd_vel
+  tof_range: /dragon/bottom_tof_driver_node/range   # <— sensor_msgs/Range
+  opp_free: /opp_lane_free
+  traffic_light: /traffic_light_state

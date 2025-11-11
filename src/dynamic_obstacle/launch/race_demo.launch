@@ -1,0 +1,16 @@
+<launch>
+  <rosparam file="$(find duckie_race_avoid)/config/params.yaml" command="load"/>
+
+
+  <!-- Opposite-lane occupancy via IPM (camera -> /opp_lane_free) -->
+  <node pkg="duckie_race_avoid" type="ipm_lane_occupancy.py" name="ipm_opp" output="screen">
+    <param name="camera_topic" value="$(arg camera_topic)" if="$(arg camera_topic)"/>
+  </node>
+
+  <!-- Controller (lane following + temporary lateral offset during overtake) -->
+  <node pkg="duckie_race_avoid" type="controller_pp.py" name="controller_pp" output="screen"/>
+
+  <!-- FSM arbitrating DRIVE/YIELD/OVERTAKE/RECOVER -->
+  <node pkg="duckie_race_avoid" type="fsm_avoid.py" name="fsm_avoid" output="screen"/>
+
+</launch>
