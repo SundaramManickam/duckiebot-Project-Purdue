@@ -1,4 +1,12 @@
 <launch>
+  <!--rosparam file="$(find dynamic_obstacle)/config/params.yaml" command="load"/-->
+  <!--arg name="veh" default="dragon"/>
+  
+
+  <include file="$(find duckietown_demos)/launch/lane_following.launch">
+    <arg name="veh" value="$(arg veh)"/>
+  </include-->
+
   <rosparam file="$(find dynamic_obstacle)/config/params.yaml" command="load"/>
   <!-- Opposite-lane occupancy via IPM (camera -> /opp_lane_free) -->
   <node pkg="dynamic_obstacle" type="ipm_lane_occupancy.py" name="ipm_opp" output="screen">
@@ -12,3 +20,4 @@
   <node pkg="dynamic_obstacle" type="fsm_avoid.py" name="fsm_avoid" output="screen"/>
 
 </launch>
+

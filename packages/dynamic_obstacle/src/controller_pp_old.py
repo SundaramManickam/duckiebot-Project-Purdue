@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import os
 import rospy
+#from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32
 from duckietown_msgs.msg import LanePose, WheelsCmdStamped
 from duckietown.dtros import DTROS, NodeType
-
 
 class ControllerPP(DTROS):
     def __init__(self, node_name):
@@ -21,10 +21,6 @@ class ControllerPP(DTROS):
         self.yawrate_limit = float(p("yawrate_limit", 1.8))
         self.control_rate = float(p("control_rate_hz", 30))
 
-        # Get robot kinematics parameters
-        self.wheel_radius = rospy.get_param(f"/{self._vehicle_name}/kinematics_node/radius")
-        self.wheel_baseline = rospy.get_param(f"/{self._vehicle_name}/kinematics_node/baseline")
-
         self.d = 0.0
         self.phi = 0.0
         self.lateral_bias = 0.0
@@ -36,6 +32,7 @@ class ControllerPP(DTROS):
         rospy.Subscriber(f"/{self._vehicle_name}/fsm/speed_cap", Float32, self.speed_cb, queue_size=1)
 
         cmd_vel_topic = p("topics/cmd_vel_out", f"/{self._vehicle_name}/wheels_driver_node/wheels_cmd")
+        #self.pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
         self.pub = rospy.Publisher(cmd_vel_topic, WheelsCmdStamped, queue_size=1)
 
     def pose_cb(self, msg):
@@ -48,13 +45,6 @@ class ControllerPP(DTROS):
     def speed_cb(self, msg):
         self.speed_cap = msg.data
 
-    def twist_to_wheels(self, v, omega):
-        """Convert linear velocity (m/s) and angular velocity (rad/s) to wheel velocities (rad/s)"""
-        # Differential drive inverse kinematics
-        vel_left = (v - 0.5 * omega * self.wheel_baseline) / self.wheel_radius
-        vel_right = (v + 0.5 * omega * self.wheel_baseline) / self.wheel_radius
-        return vel_left, vel_right
-
     def run(self):
         rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown():
@@ -62,31 +52,13 @@ class ControllerPP(DTROS):
             omega = max(min(omega, self.yawrate_limit), -self.yawrate_limit)
 
             v = min(self.v_nominal, self.speed_cap)
-            v = max(v, 0.0)
-
-            # Convert to wheel velocities
-            vel_left, vel_right = self.twist_to_wheels(v, omega)
-            rospy.loginfo_throttle(
-                0.3,
-                f"[PP] d={self.d:.3f}, phi={self.phi:.3f}, "
-                f"bias={self.lateral_bias:.3f}, v={v:.2f}, "
-                f"omega={omega:.2f}, vl={vel_left:.2f}, vr={vel_right:.2f}"
-            )
-
-            # Publish wheel commands
-            msg = WheelsCmdStamped(vel_left=vel_left, vel_right=vel_right)
-            self.pub.publish(msg)
+            tw = Twist()
+            tw.linear.x = max(v, 0.0)
+            tw.angular.z = omega
+            self.pub.publish(tw)
             rate.sleep()
-    
-    def on_shutdown(self):
-        msg=WheelsCmdStamped(vel_left=0.0, vel_right=0.0)
-        self.pub.publish(msg)
-        rospy.loginfo("ControllerPP: motors stopped")
-
 
 if __name__ == "__main__":
-    #rospy.init_node("controller_pp")
     node = ControllerPP(node_name='controller_pp')
-    rospy.on_shutdown(node.on_shutdown)
     node.run()
-    #rospy.spin()
+    rospy.spin()

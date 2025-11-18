@@ -1,2 +1,9 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
-# NOTE: only place non-Duckietown libraries here; pin versions only if necessary
+
+# Duckietown libraries - installed from GitHub
+git+https://github.com/duckietown/lib-dt-computer-vision.git
+git+https://github.com/duckietown/lib-dt-state-estimation.git
+numpy
+opencv-python
+
+

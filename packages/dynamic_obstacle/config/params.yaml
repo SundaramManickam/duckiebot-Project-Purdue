@@ -10,27 +10,38 @@ max_cross_time_s: 2.0
 
 # --- Controller ---
 control_rate_hz: 30
-v_nominal: 0.25         # m/s during DRIVE
-v_cross: 0.18           # m/s while across yellow
-yawrate_limit: 1.8      # rad/s
-lookahead_m: 0.30       # pure pursuit lookahead
+v_nominal: 0.12 #0.25         # m/s during DRIVE
+v_cross: 0.10 #0.18           # m/s while across yellow
+yawrate_limit: 2.2 #1.8      # rad/s
+lookahead_m: 0.18 #0.30       # pure pursuit lookahead
 lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
 k_phi: 2.5              # simple PID/P control gains if using (d,phi)
 k_d:  2.0
 
 # --- IPM + occupancy ---
-ipm:
-  # 4 image points (pixels) in order: top-left, top-right, bottom-right, bottom-left
-  src_pts: [[240,160],[400,160],[480,360],[160,360]]
-  # corresponding ground plane coords in meters (relative to camera) for a flat floor
-  dst_pts: [[-0.25,0.60],[0.25,0.60],[0.35,0.05],[-0.35,0.05]]
+calibrated_homography:
+  - -4.89775e-05
+  - -0.0002150858
+  - -0.1818273
+  - 0.00099274
+  - 1.202336e-06
+  - -0.3280241
+  - -0.0004281805
+  - -0.007185673
+  - 1.0
 
-opp_lane_roi:           # polygon on ground plane to test occupancy
-  # a simple rectangle polygon on the opposite lane (y forward, x left)
-  pts_m: [[0.05,0.55],[0.30,0.55],[0.30,0.15],[0.05,0.15]]
+#ipm:
+#  # 4 image points (pixels) in order: top-left, top-right, bottom-right, bottom-left
+#  src_pts: [[240,160],[400,160],[480,360],[160,360]]
+#  # corresponding ground plane coords in meters (relative to camera) for a flat floor
+#  dst_pts: [[-0.25,0.60],[0.25,0.60],[0.35,0.05],[-0.35,0.05]]
+#
+#opp_lane_roi:           # polygon on ground plane to test occupancy
+#  # a simple rectangle polygon on the opposite lane (y forward, x left)
+#  pts_m: [[0.05,0.55],[0.30,0.55],[0.30,0.15],[0.05,0.15]]
 
 mask:
-  min_area_px: 350      # blob area threshold after IPM & binary mask
+  min_area_px: 600      # blob area threshold after IPM & binary mask
   morph_kernel: 3       # simple open/close kernel size
   hsv:
     # loose mask for cones/robots/obstacles; tune on-site
@@ -38,9 +49,9 @@ mask:
     high: [30, 255,255]
 
 topics:
-  camera: /camera/image_raw
-  lane_pose: /lane_pose
-  cmd_vel_out: /cmd_vel
-  tof_range: /dragon/bottom_tof_driver_node/range   # <— sensor_msgs/Range
-  opp_free: /opp_lane_free
-  traffic_light: /traffic_light_state
+  camera: /dragon/camera_node/image/compressed
+  lane_pose: /dragon/lane_filter_node/lane_pose
+  cmd_vel_out: /dragon/wheels_driver_node/wheels_cmd
+  tof_range: /dragon/front_center_tof_driver_node/range
+  opp_free: /dragon/opp_lane_free
+  traffic_light: /dragon/traffic_light_state
