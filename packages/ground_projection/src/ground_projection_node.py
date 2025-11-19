@@ -77,6 +77,8 @@ class GroundProjectionNode(DTROS):
         self.sub_lineseglist_ = rospy.Subscriber(
             "~lineseglist_in", SegmentList, self.lineseglist_cb, queue_size=1
         )
+        
+        self.loginfo("Ground Projection Node initialized. Waiting for camera_info...")
 
         # publishers
         self.pub_lineseglist = rospy.Publisher(
@@ -181,49 +183,50 @@ class GroundProjectionNode(DTROS):
             unrectified images
 
         """
-        if self.camera_info_received:
-            # the list of segments on the ground that we will publish
-            seglist_out = SegmentList()
-            seglist_out.header = seglist_msg.header
-            colored_segments = {(255, 255, 255): [], (0,255,255): [], (255,0,0):[]}
+        if not self.camera_info_received:
+            self.logwarn("Received segments but camera_info not yet available. Cannot project segments. Is camera_node running?")
+            return
+        
+        # the list of segments on the ground that we will publish
+        seglist_out = SegmentList()
+        seglist_out.header = seglist_msg.header
+        colored_segments = {(255, 255, 255): [], (0,255,255): [], (255,0,0):[]}
 
-            for received_segment in seglist_msg.segments:
-                received_segment: SegmentMsg
-                projected_segment = SegmentMsg()
+        for received_segment in seglist_msg.segments:
+            received_segment: SegmentMsg
+            projected_segment = SegmentMsg()
 
-                projected_segment.points[0] = self.pixel_msg_to_ground_msg(
-                    received_segment.pixels_normalized[0]
-                )
-                projected_segment.points[1] = self.pixel_msg_to_ground_msg(
-                    received_segment.pixels_normalized[1]
-                )
-                projected_segment.color = received_segment.color
-                seglist_out.segments.append(projected_segment)
+            projected_segment.points[0] = self.pixel_msg_to_ground_msg(
+                received_segment.pixels_normalized[0]
+            )
+            projected_segment.points[1] = self.pixel_msg_to_ground_msg(
+                received_segment.pixels_normalized[1]
+            )
+            projected_segment.color = received_segment.color
+            seglist_out.segments.append(projected_segment)
 
-                if projected_segment.color == 0:
-                    color_vect = (255,255,255)
-                elif projected_segment.color == 1:
-                    color_vect = (0, 255, 255)
-                else:
-                    color_vect = (255, 0, 0)
-                # Extract x, y coordinates from PointMsg objects
-                p1 = (projected_segment.points[0].x, projected_segment.points[0].y)
-                p2 = (projected_segment.points[1].x, projected_segment.points[1].y)
-                colored_segments[color_vect].append((p1, p2))
-            self.pub_lineseglist.publish(seglist_out)
+            if projected_segment.color == 0:
+                color_vect = (255,255,255)
+            elif projected_segment.color == 1:
+                color_vect = (0, 255, 255)
+            else:
+                color_vect = (255, 0, 0)
+            # Extract x, y coordinates from PointMsg objects
+            p1 = (projected_segment.points[0].x, projected_segment.points[0].y)
+            p2 = (projected_segment.points[1].x, projected_segment.points[1].y)
+            colored_segments[color_vect].append((p1, p2))
+        self.pub_lineseglist.publish(seglist_out)
 
-            if not self._first_processing_done:
-                self.log("First projected segments published.")
-                self._first_processing_done = True
+        if not self._first_processing_done:
+            self.log("First projected segments published.")
+            self._first_processing_done = True
 
-            if self.pub_debug_road_view_img.get_num_connections() > 0:
-                debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(
-                    debug_image(colored_segments,(300, 300), grid_size=6, s_segment_thickness=5)
-                )
-                debug_image_msg.header = seglist_out.header
-                self.pub_debug_road_view_img.publish(debug_image_msg)
-        else:
-            self.log("Waiting for a CameraInfo message", "warn")
+        if self.pub_debug_road_view_img.get_num_connections() > 0:
+            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(
+                debug_image(colored_segments,(300, 300), grid_size=6, s_segment_thickness=5)
+            )
+            debug_image_msg.header = seglist_out.header
+            self.pub_debug_road_view_img.publish(debug_image_msg)
 
     def load_extrinsics(self) -> Union[Homography, None]:
         """
