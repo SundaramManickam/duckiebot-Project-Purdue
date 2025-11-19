@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import rospy
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 from duckietown_msgs.msg import LanePose, WheelsCmdStamped
 from duckietown.dtros import DTROS, NodeType
 
@@ -29,11 +29,13 @@ class ControllerPP(DTROS):
         self.phi = 0.0
         self.lateral_bias = 0.0
         self.speed_cap = self.v_nominal
+        self.force_straight = False
 
         lane_pose_topic = p("topics/lane_pose", f"/{self._vehicle_name}/lane_filter_node/lane_pose")
         rospy.Subscriber(lane_pose_topic, LanePose, self.pose_cb, queue_size=1)
         rospy.Subscriber(f"/{self._vehicle_name}/fsm/lateral_offset", Float32, self.bias_cb, queue_size=1)
         rospy.Subscriber(f"/{self._vehicle_name}/fsm/speed_cap", Float32, self.speed_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/fsm/force_straight", Bool, self.force_straight_cb, queue_size=1)
 
         cmd_vel_topic = p("topics/cmd_vel_out", f"/{self._vehicle_name}/wheels_driver_node/wheels_cmd")
         self.pub = rospy.Publisher(cmd_vel_topic, WheelsCmdStamped, queue_size=1)
@@ -48,6 +50,9 @@ class ControllerPP(DTROS):
     def speed_cb(self, msg):
         self.speed_cap = msg.data
 
+    def force_straight_cb(self, msg):
+        self.force_straight = msg.data
+
     def twist_to_wheels(self, v, omega):
         """Convert linear velocity (m/s) and angular velocity (rad/s) to wheel velocities (rad/s)"""
         # Differential drive inverse kinematics
@@ -58,7 +63,12 @@ class ControllerPP(DTROS):
     def run(self):
         rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown():
-            omega = -(self.k_phi * self.phi + self.k_d * self.d)
+            if self.force_straight:
+                # Override lane pose to simulate perfect center alignment
+                omega = -(self.k_phi * 0.0 + self.k_d * 0.0)
+            else:
+                omega = -(self.k_phi * self.phi + self.k_d * self.d)
+            
             omega = max(min(omega, self.yawrate_limit), -self.yawrate_limit)
 
             v = min(self.v_nominal, self.speed_cap)

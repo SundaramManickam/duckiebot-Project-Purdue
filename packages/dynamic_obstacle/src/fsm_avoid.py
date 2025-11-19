@@ -7,7 +7,7 @@ from std_msgs.msg import Bool, String, Float32
 from duckietown.dtros import DTROS, NodeType
 
 class FSM(DTROS):
-    DRIVE, YIELD, OVERTAKE, RECOVER = "DRIVE","YIELD","OVERTAKE","RECOVER"
+    DRIVE, YIELD, OVERTAKE, RECOVER, INTERSECTION = "DRIVE","YIELD","OVERTAKE","RECOVER","INTERSECTION"
 
     def __init__(self, node_name):
         super(FSM, self).__init__(
@@ -28,15 +28,18 @@ class FSM(DTROS):
         self.range_m = 10.0
         self.opp_free = False
         self.green = True  # assume green if not wired
+        self.intersection_detected = False
 
         tof_topic = p("topics/tof_range", f"/{self._vehicle_name}/bottom_tof_driver_node/range")
         rospy.Subscriber(tof_topic, Range, self.tof_cb, queue_size=1)
         rospy.Subscriber(f"/{self._vehicle_name}/opp_lane_free", Bool, self.opp_cb, queue_size=1)
         rospy.Subscriber(f"/{self._vehicle_name}/traffic_light_state", Bool, self.tl_cb, queue_size=1)
+        rospy.Subscriber(f"/{self._vehicle_name}/intersection_detected", Bool, self.int_cb, queue_size=1)
 
         self.pub_bias = rospy.Publisher(f"/{self._vehicle_name}/fsm/lateral_offset", Float32, queue_size=1)
         self.pub_speed= rospy.Publisher(f"/{self._vehicle_name}/fsm/speed_cap", Float32, queue_size=1)
         self.pub_state= rospy.Publisher(f"/{self._vehicle_name}/fsm/state", String, queue_size=1)
+        self.pub_force_straight = rospy.Publisher(f"/{self._vehicle_name}/fsm/force_straight", Bool, queue_size=1)
 
         self.state = self.DRIVE
         self.t_enter = time.time()
@@ -48,6 +51,7 @@ class FSM(DTROS):
         self.range_m = float(msg.range)
     def opp_cb(self, msg): self.opp_free = bool(msg.data)
     def tl_cb(self, msg):  self.green = bool(msg.data)
+    def int_cb(self, msg): self.intersection_detected = bool(msg.data)
 
     def trans(self, new):
         self.state = new
@@ -70,16 +74,26 @@ class FSM(DTROS):
             # Default outputs
             bias = 0.0
             speed_cap = self.v_nominal
+            force_straight = False
 
             if not self.green:
                 # gate on red
                 self.trans(self.YIELD)
 
             if self.state == self.DRIVE:
-                if self.range_m < self.stop:
+                if self.intersection_detected:
+                    self.trans(self.INTERSECTION)
+                elif self.range_m < self.stop:
                     self.trans(self.YIELD)
                 elif self.range_m < self.slow:
                     speed_cap = self.v_cross
+
+            elif self.state == self.INTERSECTION:
+                force_straight = True
+                speed_cap = self.v_nominal
+                # Drive straight for 2 seconds
+                if (now - self.t_enter) > 2.0:
+                    self.trans(self.DRIVE)
 
             elif self.state == self.YIELD:
                 speed_cap = 0.0
@@ -107,6 +121,7 @@ class FSM(DTROS):
 
             self.pub_bias.publish(Float32(bias))
             self.pub_speed.publish(Float32(speed_cap))
+            self.pub_force_straight.publish(Bool(force_straight))
             rate.sleep()
 
 if __name__ == "__main__":
