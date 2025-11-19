@@ -13,17 +13,20 @@ max_cross_time_s: 2.0
 
 # --- Controller ---
 control_rate_hz: 30
-v_nominal: 0.01 #0.25         # m/s during DRIVE
-v_cross: 0.01 #0.18         # m/s while across yellow
+v_nominal: 0.01        # m/s during DRIVE (v_bar from reference)
+v_cross: 0.01        # m/s while across yellow
 yawrate_limit: 0.6 #1.8      # rad/s
 lookahead_m: 0.18 #0.30       # pure pursuit lookahead
 lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
 
-# PID Control Gains
-k_phi: 1.5             # Proportional gain for heading error (phi)
-k_d: 0.5               # Proportional gain for lateral error (d)
-k_Iphi: 0.0            # Integral gain for heading error (set to 0 to disable)
-k_Id: -3              # Integral gain for lateral error (set to 0 to disable)
+# PID Control Gains (matching reference lane_controller_node)
+# Note: Negative gains may be due to coordinate system convention
+# DISABLED INTEGRAL TERMS - Enable only after P control is tuned and working
+# REDUCED GAINS - Original values (-3.0, -2.0) were too high, causing large omega
+k_phi: -1.5            # Proportional gain for heading error (reduced from -3.0)
+k_d: -1.0              # Proportional gain for lateral error (reduced from -2.0)
+k_Iphi: 0.0            # Integral gain for heading error (disabled - causes windup)
+k_Id: 0.0              # Integral gain for lateral error (disabled - causes windup)
 
 # Error Thresholds (capping)
 d_thres: 0.2615        # Maximum lateral error before capping
