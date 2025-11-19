@@ -70,11 +70,15 @@ class LaneFilterNode(DTROS):
 
 
         # Load the needed filter parameters defined elsewhere need here
+        if self._filter is None:
+            rospy.logerr("[Lane filter] lane_filter_histogram_configuration parameter not found!")
+            raise ValueError("lane_filter_histogram_configuration parameter is required")
+        
         try:
             self._filter['encoder_resolution'] = rospy.get_param("left_wheel_encoder_driver_node/resolution", 135)
             self._filter['wheel_baseline'] = rospy.get_param("kinematics_node/baseline")
             self._filter['wheel_radius'] = rospy.get_param("kinematics_node/radius")
-        except rospy.KeyError as e:
+        except (rospy.KeyError, TypeError) as e:
             rospy.logerror(f"[Lane filter] Unable to load required param: {e}")
 
         # Create the filter
@@ -121,7 +125,8 @@ class LaneFilterNode(DTROS):
 
         # Set up a timer for prediction (if we got encoder data) since that data can come very quickly
   #      rospy.Timer(rospy.Duration(1 / self._predict_freq), self.cbPredict)
-        self.publishEstimate(self.last_update_header)
+        # Don't publish estimate during initialization - wait for first segment message
+        # self.publishEstimate(self.last_update_header)
 
 
     def cbEpisodeStart(self, msg):
@@ -238,12 +243,16 @@ class LaneFilterNode(DTROS):
             #)
             #self.pub_belief_img.publish(belief_img)
 
-            d_max, phi_max = self.filter.get_estimate()
-            plot_d_phi_img = self.bridge.cv2_to_compressed_imgmsg(
-                plot_d_phi(d=d_max, phi=phi_max)
-            )
-
-            self.pub_plot_d_phi.publish(plot_d_phi_img)
+            # Check if publisher exists before using it
+            if hasattr(self, 'pub_plot_d_phi'):
+                try:
+                    d_max, phi_max = self.filter.get_estimate()
+                    plot_d_phi_img = self.bridge.cv2_to_compressed_imgmsg(
+                        plot_d_phi(d=d_max, phi=phi_max)
+                    )
+                    self.pub_plot_d_phi.publish(plot_d_phi_img)
+                except Exception as e:
+                    rospy.logwarn(f"[Lane filter] Error publishing debug plot_d_phi: {e}")
 
 
     def loginfo(self, s):
