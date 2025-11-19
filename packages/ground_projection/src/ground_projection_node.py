@@ -101,17 +101,8 @@ class GroundProjectionNode(DTROS):
             queue_size=1,
         )
 
-        self.pub_debug_rectified_img = rospy.Publisher(
-            "~debug/projected_image/rectified/compressed",
-            CompressedImage,
-            queue_size=1,
-        )
-
-        self.pub_debug_projected_img = rospy.Publisher(
-            "~debug/projected_image/compressed",
-            CompressedImage,
-            queue_size=1,
-        )
+        # Removed: debug image publishers for rectified/projected images
+        # These were never used and the cb_image callback that would populate them has been removed
 
         self.bridge = CvBridge()
 
@@ -247,6 +238,7 @@ class GroundProjectionNode(DTROS):
             debug_image_msg.header = seglist_out.header
             self.pub_debug_road_view_img.publish(debug_image_msg)
 
+<<<<<<< HEAD
 #    def cb_image(self, msg: CompressedImage):
 #        if not self.camera_info_received:
 #            return  # can't rectify/project without intrinsics
@@ -277,6 +269,8 @@ class GroundProjectionNode(DTROS):
 #
 
         
+=======
+>>>>>>> ad60882b2a868295646aa5bb88c3de6c2a488525
     def load_extrinsics(self) -> Union[Homography, None]:
         """
         Loads the homography matrix from the extrinsic calibration file.

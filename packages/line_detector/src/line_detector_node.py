@@ -71,6 +71,27 @@ class LineDetectorNode(DTROS):
         # This holds the colormaps for the debug/ranges images after they are computed once
         self.colormaps = dict()
 
+        # Check if CUDA is available - MUST be initialized BEFORE subscribers to avoid race condition
+        # LP: I think for this to work we need the base image to have CUDA
+        #     which it currently doesn't
+        try:
+            cuda_device_count = cv2.cuda.getCudaEnabledDeviceCount()
+            if cuda_device_count > 0:
+                self.loginfo(f"Using CUDA GPU for line detection. Found {cuda_device_count} CUDA device(s).")
+                self.cuda_enabled = True
+            else:
+                self.logwarn("CUDA is not available. Using CPU for line detection.")
+                self.logwarn("To enable GPU: OpenCV must be compiled with CUDA support and CUDA drivers must be installed.")
+                self.cuda_enabled = False
+        except AttributeError:
+            # OpenCV was not compiled with CUDA support
+            self.logwarn("OpenCV CUDA module not available. Using CPU for line detection.")
+            self.logwarn("To enable GPU: Install OpenCV with CUDA support (opencv-contrib-python with CUDA or custom build).")
+            self.cuda_enabled = False
+        except Exception as e:
+            self.logwarn(f"Error checking CUDA availability: {e}. Using CPU for line detection.")
+            self.cuda_enabled = False
+
         # Create a new LineDetector object with the parameters from the Parameter Server / config file
         self.detector = LineDetector(**self._line_detector_parameters)
 
@@ -93,7 +114,7 @@ class LineDetectorNode(DTROS):
             "~debug/maps/compressed", CompressedImage, queue_size=1, dt_topic_type=TopicType.DEBUG
         )
 
-        # Subscribers
+        # Subscribers - Create AFTER cuda_enabled is initialized to avoid race condition
         self.sub_image = rospy.Subscriber(
             "~image/compressed", CompressedImage, self.image_cb, buff_size=10000000, queue_size=1
         )
@@ -101,16 +122,6 @@ class LineDetectorNode(DTROS):
         self.sub_thresholds = rospy.Subscriber(
             "~thresholds", AntiInstagramThresholds, self.thresholds_cb, queue_size=1
         )
-
-        # Check if CUDA is available
-        # LP: I think for this to work we need the base image to have CUDA
-        #     which it currently doesn't
-        if cv2.cuda.getCudaEnabledDeviceCount() > 0:
-            self.loginfo("Using CUDA GPU for line detection.")
-            self.cuda_enabled = True
-        else:
-            self.loginfo("Using the CPU for line detection.")
-            self.cuda_enabled = False
 
     def on_colors_range_change(self):
         self.color_ranges = {
