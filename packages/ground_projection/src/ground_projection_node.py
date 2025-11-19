@@ -231,8 +231,13 @@ class GroundProjectionNode(DTROS):
 
         """
         # load extrinsic calibration
-        cali_file_folder = "/data/config/calibrations/camera_extrinsic/"
-        cali_file = cali_file_folder + rospy.get_namespace().strip("/") + ".yaml"
+        cali_file_folder = "/code/catkin_ws/src/duckiebot-Project-Purdue/packages/dynamic_obstacle/config/camera_extrinsics/"
+        #"/code/catkin_ws/src/duckiebot-Project-Purdue/packages/dynamic_obstacle/config/camera_extrinsic/"
+        #"/home/mayank/cv_proj/duckiebot-Project-Purdue/packages/dynamic_obstacle/config/camera_extrinsic/"
+        cali_file = cali_file_folder + rospy.get_namespace().strip("/") + ".yaml"   
+        print("[DEBUG] Looking for extrinsic calibration at:", cali_file)
+        self.log(f"[DEBUG] Looking for extrinsic calibration at: {cali_file}", "warn")
+
 
         # Locate calibration yaml file or use the default otherwise
         if not os.path.isfile(cali_file):
@@ -241,32 +246,35 @@ class GroundProjectionNode(DTROS):
                 "warn",
             )
             cali_file = os.path.join(cali_file_folder, "default.yaml")
+            print("[DEBUG-2] Looking for extrinsic calibration at:", cali_file)
+            self.log(f"[DEBUG-2] Looking for extrinsic calibration at: {cali_file}", "warn")
+
 
         # Shutdown if no calibration file not found
         if not os.path.isfile(cali_file):
-#            msg = "Found no calibration file ... aborting"
-#            self.logerr(msg)
-#            rospy.signal_shutdown(msg)
+            msg = "Found no calibration file ... aborting"
+            self.logerr(msg)
+            rospy.signal_shutdown(msg)
+
+        try:
+            H: Homography = HomographyToolkit.load_from_disk(
+                cali_file, return_date=False
+            )  # type: ignore
+            return H.reshape((3, 3))
+        except Exception as e:
+            msg = f"Error in parsing calibration file {cali_file}:\n{e}"
+            self.logerr(msg)
+            rospy.signal_shutdown(msg)
+            #msg = "Using hardcoded values"
+            #self.logwarn(msg)
+            #H = np.array([
+            #    [-4.89775e-05,  -0.0002150858, -0.1818273],
+            #    [ 0.00099274,    1.202336e-06, -0.3280241],
+            #    [-0.0004281805, -0.007185673,   1.0]
+            #], dtype=np.float32)
 #
-#        try:
-#            H: Homography = HomographyToolkit.load_from_disk(
-#                cali_file, return_date=False
-#            )  # type: ignore
-#            return H.reshape((3, 3))
-#        except Exception as e:
-#            msg = f"Error in parsing calibration file {cali_file}:\n{e}"
-#            self.logerr(msg)
-#            rospy.signal_shutdown(msg)
-            msg = "Using hardcoded values"
-            self.logwarn(msg)
-            H = np.array([
-                [-4.89775e-05,  -0.0002150858, -0.1818273],
-                [ 0.00099274,    1.202336e-06, -0.3280241],
-                [-0.0004281805, -0.007185673,   1.0]
-            ], dtype=np.float32)
-
-            return H
-
+            #return H
+#
 
 if __name__ == "__main__":
     ground_projection_node = GroundProjectionNode(node_name="ground_projection_node")

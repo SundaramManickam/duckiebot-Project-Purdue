@@ -10,25 +10,26 @@ max_cross_time_s: 2.0
 
 # --- Controller ---
 control_rate_hz: 30
-v_nominal: 0.12 #0.25         # m/s during DRIVE
-v_cross: 0.10 #0.18           # m/s while across yellow
-yawrate_limit: 2.2 #1.8      # rad/s
+v_nominal: 0.00 #0.25         # m/s during DRIVE
+v_cross: 0.00 #0.18         # m/s while across yellow
+yawrate_limit: 0.8 #1.8      # rad/s
 lookahead_m: 0.18 #0.30       # pure pursuit lookahead
 lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
-k_phi: 2.5              # simple PID/P control gains if using (d,phi)
-k_d:  2.0
+k_phi: 1.5              # simple PID/P control gains if using (d,phi)
+k_d:  0.5
 
 # --- IPM + occupancy ---
 calibrated_homography:
-  - -4.89775e-05
-  - -0.0002150858
-  - -0.1818273
-  - 0.00099274
-  - 1.202336e-06
-  - -0.3280241
-  - -0.0004281805
-  - -0.007185673
-  - 1.0
+  - 5.395392804563846e-05
+  - 0.0004109055615250783
+  - 0.24576737751539796
+  - -0.0014685238333781024
+  - 3.7226464591384365e-05
+  - 0.4913286734632894
+  - -5.503696715018416e-05
+  - 0.012232428118878565
+  - -1.9722009464710846
+
 
 #ipm:
 #  # 4 image points (pixels) in order: top-left, top-right, bottom-right, bottom-left

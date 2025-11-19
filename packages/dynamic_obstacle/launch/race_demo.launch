@@ -1,44 +1,25 @@
 <launch>
-  <!-- Vehicle name - gets set by dts automatically -->
   <arg name="veh" default="dragon"/>
-  
-  <!-- Traffic mode for line detector -->
-  <arg name="traffic_mode" default="RHT" doc="Right-Hand Traffic (RHT) or Left-Hand Traffic (LHT)"/>
-  
-  <!-- Load your custom parameters -->
+  <arg name="traffic_mode" default="RHT"/>
+
   <rosparam file="$(find dynamic_obstacle)/config/params.yaml" command="load"/>
 
-  <!-- ========================================== -->
-  <!-- Lane Detection Pipeline (from dt-core)    -->
-  <!-- ========================================== -->
-  
-  <!-- Line Detector: Detects white/yellow lines -->
+  <!-- Use the corrected node launchers -->
   <include file="$(find line_detector)/launch/line_detector_node.launch">
     <arg name="veh" value="$(arg veh)"/>
     <arg name="traffic_mode" value="$(arg traffic_mode)"/>
   </include>
 
-  <!-- Ground Projection: Projects lines to ground plane -->
   <include file="$(find ground_projection)/launch/ground_projection_node.launch">
     <arg name="veh" value="$(arg veh)"/>
   </include>
 
-  <!-- Lane Filter: Estimates lane pose (d, phi) -->
   <include file="$(find lane_filter)/launch/lane_filter_node.launch">
     <arg name="veh" value="$(arg veh)"/>
   </include>
 
-  <!-- ========================================== -->
-  <!-- Your Custom Obstacle Avoidance Nodes      -->
-  <!-- ========================================== -->
-
-  <!-- Opposite-lane occupancy via IPM -->
   <node pkg="dynamic_obstacle" type="ipm_lane_occupancy.py" name="ipm_opp" output="screen"/>
-
-  <!-- Controller (lane following + lateral offset during overtake) -->
   <node pkg="dynamic_obstacle" type="controller_pp.py" name="controller_pp" output="screen"/>
-
-  <!-- FSM arbitrating DRIVE/YIELD/OVERTAKE/RECOVER -->
   <node pkg="dynamic_obstacle" type="fsm_avoid.py" name="fsm_avoid" output="screen"/>
 
 </launch>
