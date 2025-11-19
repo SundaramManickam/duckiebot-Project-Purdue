@@ -21,8 +21,8 @@
   <depend>line_detector</depend>
   <depend>ground_projection</depend>
   <depend>lane_filter</depend>
+  <depend>anti_instagram</depend>
   <depend>image_geometry</depend>
-
 
   <exec_depend>dt-computer-vision</exec_depend>
   <exec_depend>dt-state-estimation</exec_depend>

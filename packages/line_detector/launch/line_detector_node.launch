@@ -21,6 +21,11 @@
       <!-- Node subscribes to "~image/compressed" in code -->
       <remap from="~image/compressed"
              to="/dragon/camera_node/image/compressed"/>
+      
+      <!-- Inside line_detector_node.launch, add to the node definition -->
+      <remap from="~thresholds"
+             to="/dragon/anti_instagram_node/thresholds"/>
+      
     </node>
   </group>
 </launch>

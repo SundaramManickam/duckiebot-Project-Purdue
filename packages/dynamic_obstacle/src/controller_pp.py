@@ -58,12 +58,12 @@ class ControllerPP(DTROS):
     def run(self):
         rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown():
-            omega = -(self.k_phi * self.phi + self.k_d * self.d) # was -
+            omega = (self.k_phi * self.phi + self.k_d * self.d) # was -
             omega = max(min(omega, self.yawrate_limit), -self.yawrate_limit)
-            omega = 0.0 #placeholder
+            #omega = 0.0 #placeholder
             v = min(self.v_nominal, self.speed_cap)
             v = max(v, 0.0)
-            v = 0.0 #placeholder
+            #v = 0.0 #placeholder
 
             # Convert to wheel velocities
             vel_left, vel_right = self.twist_to_wheels(v, omega)

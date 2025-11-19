@@ -4,20 +4,38 @@
 
   <rosparam file="$(find dynamic_obstacle)/config/params.yaml" command="load"/>
 
-  <!-- Use the corrected node launchers -->
+  <!-- =============================== -->
+  <!-- 1. ANTI-INSTAGRAM NODE          -->
+  <!-- =============================== -->
+  <include file="$(find anti_instagram)/launch/anti_instagram_node.launch">
+    <arg name="veh" value="$(arg veh)"/>
+  </include>
+
+  <!-- =============================== -->
+  <!-- 2. LINE DETECTOR (USES AI)      -->
+  <!-- =============================== -->
   <include file="$(find line_detector)/launch/line_detector_node.launch">
     <arg name="veh" value="$(arg veh)"/>
     <arg name="traffic_mode" value="$(arg traffic_mode)"/>
   </include>
 
+  <!-- =============================== -->
+  <!-- 3. GROUND PROJECTION             -->
+  <!-- =============================== -->
   <include file="$(find ground_projection)/launch/ground_projection_node.launch">
     <arg name="veh" value="$(arg veh)"/>
   </include>
 
+  <!-- =============================== -->
+  <!-- 4. LANE FILTER                   -->
+  <!-- =============================== -->
   <include file="$(find lane_filter)/launch/lane_filter_node.launch">
     <arg name="veh" value="$(arg veh)"/>
   </include>
 
+  <!-- =============================== -->
+  <!-- 5. YOUR CUSTOM CONTROL STACK    -->
+  <!-- =============================== -->
   <node pkg="dynamic_obstacle" type="ipm_lane_occupancy.py" name="ipm_opp" output="screen"/>
   <node pkg="dynamic_obstacle" type="controller_pp.py" name="controller_pp" output="screen"/>
   <node pkg="dynamic_obstacle" type="fsm_avoid.py" name="fsm_avoid" output="screen"/>

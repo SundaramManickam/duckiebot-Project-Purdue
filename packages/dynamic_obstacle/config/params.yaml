@@ -10,8 +10,8 @@ max_cross_time_s: 2.0
 
 # --- Controller ---
 control_rate_hz: 30
-v_nominal: 0.00 #0.25         # m/s during DRIVE
-v_cross: 0.00 #0.18         # m/s while across yellow
+v_nominal: 0.01 #0.25         # m/s during DRIVE
+v_cross: 0.01 #0.18         # m/s while across yellow
 yawrate_limit: 0.8 #1.8      # rad/s
 lookahead_m: 0.18 #0.30       # pure pursuit lookahead
 lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
