@@ -3,7 +3,10 @@ slowdown_dist: 0.70
 stop_dist: 0.48
 release_margin: 0.05    # hysteresis release
 
-# --- Overtake gating ---
+# --- Avoidance parameters ---
+avoid_distance_m: 0.60  # distance to travel during avoidance maneuver (semi-circle)
+
+# --- Overtake gating (legacy, not used in simplified FSM) ---
 opp_clear_hold_s: 0.5   # need this much continuous 'clear' before overtake
 pass_length_m: 0.60     # distance to travel while offset before returning
 max_cross_time_s: 2.0
