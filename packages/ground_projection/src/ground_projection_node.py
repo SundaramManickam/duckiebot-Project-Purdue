@@ -178,34 +178,26 @@ class GroundProjectionNode(DTROS):
         return PointMsg(x=p_ground.x, y=p_ground.y)
 
     def lineseglist_cb(self, seglist_msg: SegmentList):
-        """
-        Projects a list of line segments on the ground reference frame point by point by
-        calling :py:meth:`pixel_msg_to_ground_msg`. Then publishes the projected list of segments.
-
-        Args:
-            seglist_msg (:obj:`duckietown_msgs.msg.SegmentList`): Line segments in pixel space from
-            unrectified images
-
-        """
         if not self.camera_info_received:
             self.logwarn("Received segments but camera_info not yet available. Cannot project segments. Is camera_node running?")
             return
-        
-        # Debug: Log callback trigger (throttled - every 30 callbacks)
-        self._callback_count += 1
-        num_segments = len(seglist_msg.segments)
-        if self._callback_count % 30 == 1:
-            self.loginfo(f"Processing {num_segments} segments from line detector (callback #{self._callback_count})")
-        
+
         # the list of segments on the ground that we will publish
         seglist_out = SegmentList()
         seglist_out.header = seglist_msg.header
-        colored_segments = {(255, 255, 255): [], (0,255,255): [], (255,0,0):[]}
+
+        # color → list of (start_point, end_point)
+        colored_segments = {
+            (255, 255, 255): [],  # WHITE
+            (0, 255, 255): [],    # YELLOW
+            (255, 0, 0): []       # RED
+        }
 
         for received_segment in seglist_msg.segments:
             received_segment: SegmentMsg
             projected_segment = SegmentMsg()
 
+            # project to ground
             projected_segment.points[0] = self.pixel_msg_to_ground_msg(
                 received_segment.pixels_normalized[0]
             )
@@ -215,44 +207,40 @@ class GroundProjectionNode(DTROS):
             projected_segment.color = received_segment.color
             seglist_out.segments.append(projected_segment)
 
+            # choose color for debug image
             if projected_segment.color == 0:
-                color_vect = (255,255,255)
+                color_vect = (255, 255, 255)
             elif projected_segment.color == 1:
                 color_vect = (0, 255, 255)
             else:
                 color_vect = (255, 0, 0)
-            # Pass PointMsg objects directly - debug_image expects objects with .x and .y attributes
-            colored_segments[color_vect].append((projected_segment.points[0], projected_segment.points[1]))
+
+            # IMPORTANT: keep points as Point objects, NOT tuples
+            p1 = projected_segment.points[0]  # geometry_msgs/Point, has .x and .y
+            p2 = projected_segment.points[1]
+            colored_segments[color_vect].append((p1, p2))
+
+        # publish projected segments
         self.pub_lineseglist.publish(seglist_out)
 
         if not self._first_processing_done:
             self.log("First projected segments published.")
             self._first_processing_done = True
 
+        # publish debug grid + segments
         if self.pub_debug_road_view_img.get_num_connections() > 0:
-        
-            # Convert tuples → GroundPoint objects for debug_image()
-            formatted_segments = {}
-            for color, segs in colored_segments.items():
-                formatted_segments[color] = []
-                for (p1, p2) in segs:
-                    gp1 = GroundPoint(x=float(p1[0]), y=float(p1[1]))
-                    gp2 = GroundPoint(x=float(p2[0]), y=float(p2[1]))
-                    formatted_segments[color].append((gp1, gp2))
-        
-            debug_img = debug_image(
-                formatted_segments,
-                (300, 300),
-                grid_size=6,
-                s_segment_thickness=5
+            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(
+                debug_image(
+                    colored_segments,
+                    (300, 300),
+                    grid_size=6,
+                    s_segment_thickness=5,
+                )
             )
-        
-            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(debug_img)
             debug_image_msg.header = seglist_out.header
             self.pub_debug_road_view_img.publish(debug_image_msg)
+
         
-
-
     def load_extrinsics(self) -> Union[Homography, None]:
         """
         Loads the homography matrix from the extrinsic calibration file.
