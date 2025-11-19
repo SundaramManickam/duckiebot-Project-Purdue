@@ -16,7 +16,7 @@
 
       <!-- 🔴 Camera info to private "~camera_info" -->
       <remap from="~camera_info"
-             to="camera_node/camera_info"/>
+             to="/dragon/camera_node/camera_info"/>
 
       <!-- 🔴 Feed projected segments input from line detector -->
       <remap from="~lineseglist_in"
