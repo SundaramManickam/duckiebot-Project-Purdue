@@ -80,9 +80,15 @@ class LaneFilterNode(DTROS):
             self._filter['wheel_radius'] = rospy.get_param("kinematics_node/radius")
         except (rospy.KeyError, TypeError) as e:
             rospy.logerror(f"[Lane filter] Unable to load required param: {e}")
+            raise  # Re-raise to prevent initialization with incomplete parameters
 
         # Create the filter
-        self.filter = LaneFilterHistogram(**self._filter)
+        try:
+            self.filter = LaneFilterHistogram(**self._filter)
+            rospy.loginfo("[Lane filter] LaneFilterHistogram initialized successfully")
+        except Exception as e:
+            rospy.logerr(f"[Lane filter] Failed to initialize LaneFilterHistogram: {e}")
+            raise  # Re-raise to prevent node from running with uninitialized filter
 
 
         # this is only used for the timestamp of the first publication
@@ -93,22 +99,7 @@ class LaneFilterNode(DTROS):
         self.bridge = CvBridge()
 
 
-        # Subscribers
-
-        self.sub_segment_list = rospy.Subscriber(
-            "~segment_list", SegmentList, self.cbProcessSegments, queue_size=1
-        )
-
-        self.sub_encoder_left = rospy.Subscriber(
-            "~left_wheel_encoder_driver_node/tick", WheelEncoderStamped, self.cbProcessLeftEncoder, queue_size=1
-        )
-
-        self.sub_encoder_right = rospy.Subscriber(
-            "~right_wheel_encoder_driver_node/tick", WheelEncoderStamped, self.cbProcessRightEncoder, queue_size=1
-        )
-
-
-        # Publishers
+        # Publishers - Create these BEFORE subscribers to ensure they exist when callbacks are triggered
         try:
             self.pub_lane_pose = rospy.Publisher(
                 "~lane_pose", LanePose, queue_size=1, dt_topic_type=TopicType.PERCEPTION
@@ -133,6 +124,21 @@ class LaneFilterNode(DTROS):
         except Exception as e:
             rospy.logwarn(f"[Lane filter] Failed to initialize pub_plot_d_phi: {e}")
             self.pub_plot_d_phi = None
+
+
+        # Subscribers - Create these AFTER publishers to avoid callbacks before publishers exist
+
+        self.sub_segment_list = rospy.Subscriber(
+            "~segment_list", SegmentList, self.cbProcessSegments, queue_size=1
+        )
+
+        self.sub_encoder_left = rospy.Subscriber(
+            "~left_wheel_encoder_driver_node/tick", WheelEncoderStamped, self.cbProcessLeftEncoder, queue_size=1
+        )
+
+        self.sub_encoder_right = rospy.Subscriber(
+            "~right_wheel_encoder_driver_node/tick", WheelEncoderStamped, self.cbProcessRightEncoder, queue_size=1
+        )
 
 
 

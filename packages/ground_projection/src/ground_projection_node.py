@@ -68,6 +68,7 @@ class GroundProjectionNode(DTROS):
         self.homography: Optional[Homography] = None
         self._first_processing_done = False
         self.camera_info_received = False
+        self._callback_count = 0  # For throttled logging
 
 
         # subscribers
@@ -79,6 +80,8 @@ class GroundProjectionNode(DTROS):
         )
         
         self.loginfo("Ground Projection Node initialized. Waiting for camera_info...")
+        self.loginfo(f"Subscribing to: {self.sub_camera_info.resolved_name}")
+        self.loginfo(f"Subscribing to: {self.sub_lineseglist_.resolved_name}")
 
         # publishers
         self.pub_lineseglist = rospy.Publisher(
@@ -187,6 +190,12 @@ class GroundProjectionNode(DTROS):
             self.logwarn("Received segments but camera_info not yet available. Cannot project segments. Is camera_node running?")
             return
         
+        # Debug: Log callback trigger (throttled - every 30 callbacks)
+        self._callback_count += 1
+        num_segments = len(seglist_msg.segments)
+        if self._callback_count % 30 == 1:
+            self.loginfo(f"Processing {num_segments} segments from line detector (callback #{self._callback_count})")
+        
         # the list of segments on the ground that we will publish
         seglist_out = SegmentList()
         seglist_out.header = seglist_msg.header
@@ -211,22 +220,31 @@ class GroundProjectionNode(DTROS):
                 color_vect = (0, 255, 255)
             else:
                 color_vect = (255, 0, 0)
-            # Extract x, y coordinates from PointMsg objects
-            p1 = (projected_segment.points[0].x, projected_segment.points[0].y)
-            p2 = (projected_segment.points[1].x, projected_segment.points[1].y)
-            colored_segments[color_vect].append((p1, p2))
+            # Pass PointMsg objects directly - debug_image expects objects with .x and .y attributes
+            colored_segments[color_vect].append((projected_segment.points[0], projected_segment.points[1]))
         self.pub_lineseglist.publish(seglist_out)
 
         if not self._first_processing_done:
             self.log("First projected segments published.")
             self._first_processing_done = True
 
-        if self.pub_debug_road_view_img.get_num_connections() > 0:
-            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(
-                debug_image(colored_segments,(300, 300), grid_size=6, s_segment_thickness=5)
-            )
-            debug_image_msg.header = seglist_out.header
-            self.pub_debug_road_view_img.publish(debug_image_msg)
+        # Debug: Check subscriber count (log every 30 callbacks or when first subscriber connects)
+        num_connections = self.pub_debug_road_view_img.get_num_connections()
+        if self._callback_count % 30 == 1 or (num_connections > 0 and self._callback_count % 10 == 1):
+            self.loginfo(f"Debug image subscribers: {num_connections}, Total colored segments: W={len(colored_segments[(255,255,255)])}, Y={len(colored_segments[(0,255,255)])}, R={len(colored_segments[(255,0,0)])}")
+        
+        if num_connections > 0:
+            try:
+                if self._callback_count % 30 == 1:
+                    self.loginfo("Generating debug image...")
+                debug_img = debug_image(colored_segments,(300, 300), grid_size=6, s_segment_thickness=5)
+                debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(debug_img)
+                debug_image_msg.header = seglist_out.header
+                self.pub_debug_road_view_img.publish(debug_image_msg)
+                if self._callback_count % 30 == 1:
+                    self.loginfo("Debug image published successfully")
+            except Exception as e:
+                self.logerr(f"Failed to generate/publish debug image: {e}")
 
     def load_extrinsics(self) -> Union[Homography, None]:
         """
