@@ -79,7 +79,14 @@ class GroundProjectionNode(DTROS):
         self.sub_lineseglist_ = rospy.Subscriber(
             "~lineseglist_in", SegmentList, self.lineseglist_cb, queue_size=1
         )
-        
+
+        self.sub_image = rospy.Subscriber(
+            "~image/compressed",
+            CompressedImage,
+            self.cb_image,
+            queue_size=1
+        )
+
         self.loginfo("Ground Projection Node initialized. Waiting for camera_info...")
         self.loginfo(f"Subscribing to: {self.sub_camera_info.resolved_name}")
         self.loginfo(f"Subscribing to: {self.sub_lineseglist_.resolved_name}")
@@ -239,6 +246,35 @@ class GroundProjectionNode(DTROS):
             )
             debug_image_msg.header = seglist_out.header
             self.pub_debug_road_view_img.publish(debug_image_msg)
+
+    def cb_image(self, msg: CompressedImage):
+        if not self.camera_info_received:
+            return  # can't rectify/project without intrinsics
+
+        try:
+            cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
+        except Exception as e:
+            self.logerr(f"Image conversion failed: {e}")
+            return
+
+        # ==== RECTIFIED IMAGE DEBUG ====
+        try:
+            rectified = self.camera.rectifier.rectify_image(cv_img)
+            rect_msg = self.bridge.cv2_to_compressed_imgmsg(rectified)
+            rect_msg.header = msg.header
+            self.pub_debug_rectified_img.publish(rect_msg)
+        except Exception as e:
+            self.logerr(f"Rectification failed: {e}")
+
+        # ==== PROJECTED IMAGE DEBUG (H applied to full image) ====
+        try:
+            projected = self.projector.project_image(cv_img)
+            proj_msg = self.bridge.cv2_to_compressed_imgmsg(projected)
+            proj_msg.header = msg.header
+            self.pub_debug_projected_img.publish(proj_msg)
+        except Exception as e:
+            self.logerr(f"Homography projection failed: {e}")
+
 
         
     def load_extrinsics(self) -> Union[Homography, None]:
