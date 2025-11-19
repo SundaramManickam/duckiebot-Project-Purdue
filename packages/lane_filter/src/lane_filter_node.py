@@ -109,17 +109,30 @@ class LaneFilterNode(DTROS):
 
 
         # Publishers
-        self.pub_lane_pose = rospy.Publisher(
-            "~lane_pose", LanePose, queue_size=1, dt_topic_type=TopicType.PERCEPTION
-        )
+        try:
+            self.pub_lane_pose = rospy.Publisher(
+                "~lane_pose", LanePose, queue_size=1, dt_topic_type=TopicType.PERCEPTION
+            )
+            rospy.loginfo("[Lane filter] pub_lane_pose publisher initialized")
+        except Exception as e:
+            rospy.logerr(f"[Lane filter] Failed to initialize pub_lane_pose: {e}")
+            self.pub_lane_pose = None
 
-        self.pub_belief_img = rospy.Publisher(
-             "~debug/belief_img/compressed", CompressedImage, queue_size=1, dt_topic_type=TopicType.DEBUG
-        )
+        try:
+            self.pub_belief_img = rospy.Publisher(
+                 "~debug/belief_img/compressed", CompressedImage, queue_size=1, dt_topic_type=TopicType.DEBUG
+            )
+        except Exception as e:
+            rospy.logwarn(f"[Lane filter] Failed to initialize pub_belief_img: {e}")
+            self.pub_belief_img = None
 
-        self.pub_plot_d_phi = rospy.Publisher(
-            "~debug/plot_d_phi/compressed", CompressedImage, queue_size=1, dt_topic_type=TopicType.DEBUG
-        )
+        try:
+            self.pub_plot_d_phi = rospy.Publisher(
+                "~debug/plot_d_phi/compressed", CompressedImage, queue_size=1, dt_topic_type=TopicType.DEBUG
+            )
+        except Exception as e:
+            rospy.logwarn(f"[Lane filter] Failed to initialize pub_plot_d_phi: {e}")
+            self.pub_plot_d_phi = None
 
 
 
@@ -210,6 +223,9 @@ class LaneFilterNode(DTROS):
         self.publishEstimate(segment_list_msg.header)
 
     def publishEstimate(self, header):
+        # Don't publish if header is None
+        if header is None:
+            return
 
         [d_max, phi_max] = self.filter.get_estimate()
 
@@ -227,7 +243,11 @@ class LaneFilterNode(DTROS):
         # XXX: is it always NORMAL?
         lanePose.status = lanePose.NORMAL
 
-        self.pub_lane_pose.publish(lanePose)
+        # Check if publisher exists before using it
+        if hasattr(self, 'pub_lane_pose') and self.pub_lane_pose is not None:
+            self.pub_lane_pose.publish(lanePose)
+        else:
+            rospy.logwarn("[Lane filter] pub_lane_pose publisher not initialized, cannot publish lane pose")
         if self._debug:
             self.debugOutput()
 
