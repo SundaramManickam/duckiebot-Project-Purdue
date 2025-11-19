@@ -17,7 +17,7 @@
 
       <!-- 🔴 Take projected segments from ground_projection -->
       <remap from="~segment_list"
-             to="/$(arg veh)/ground_projection_node/lineseglist_out"/>
+             to="/dragon/ground_projection_node/lineseglist_out"/>
     </node>
   </group>
 </launch>
