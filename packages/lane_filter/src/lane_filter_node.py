@@ -131,6 +131,7 @@ class LaneFilterNode(DTROS):
         self.sub_segment_list = rospy.Subscriber(
             "~segment_list", SegmentList, self.cbProcessSegments, queue_size=1
         )
+        rospy.loginfo(f"[Lane filter] Subscribed to: {self.sub_segment_list.resolved_name}")
 
         self.sub_encoder_left = rospy.Subscriber(
             "~left_wheel_encoder_driver_node/tick", WheelEncoderStamped, self.cbProcessLeftEncoder, queue_size=1
@@ -202,6 +203,14 @@ class LaneFilterNode(DTROS):
             segment_list_msg (:obj:`SegmentList`): message containing list of processed segments
 
         """
+        # Debug: Log when segments are received
+        num_segments = len(segment_list_msg.segments)
+        rospy.loginfo_throttle(2.0, f"[Lane filter] Received {num_segments} projected segments")
+        
+        if num_segments == 0:
+            rospy.logwarn_throttle(5.0, "[Lane filter] Received 0 segments - cannot update filter")
+            return
+        
         self.cbPredict()
         self.last_update_header = segment_list_msg.header
         dt_segment_list = []
@@ -224,7 +233,14 @@ class LaneFilterNode(DTROS):
             dt_segment_list.append(dt_segment)
 
 
+        # Debug: Log filter update
+        rospy.loginfo_throttle(2.0, f"[Lane filter] Updating filter with {len(dt_segment_list)} segments")
+        
         self.filter.update(dt_segment_list)
+        
+        # Debug: Log estimate after update
+        [d, phi] = self.filter.get_estimate()
+        rospy.loginfo_throttle(2.0, f"[Lane filter] Filter estimate: d={d:.3f}, phi={phi:.3f}")
 
         self.publishEstimate(segment_list_msg.header)
 
