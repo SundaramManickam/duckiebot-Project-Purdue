@@ -18,8 +18,35 @@ v_cross: 0.01 #0.18         # m/s while across yellow
 yawrate_limit: 0.6 #1.8      # rad/s
 lookahead_m: 0.18 #0.30       # pure pursuit lookahead
 lateral_offset_m: 0.15  # shift toward opposite lane during OVERTAKE
-k_phi: 1.5             # simple PID/P control gains if using (d,phi)
-k_d:  0.5
+
+# PID Control Gains
+k_phi: 1.5             # Proportional gain for heading error (phi)
+k_d: 0.5               # Proportional gain for lateral error (d)
+k_Iphi: 0.0            # Integral gain for heading error (set to 0 to disable)
+k_Id: -3              # Integral gain for lateral error (set to 0 to disable)
+
+# Error Thresholds (capping)
+d_thres: 0.2615        # Maximum lateral error before capping
+theta_thres_min: -0.5  # Minimum heading error before capping
+theta_thres_max: 0.75  # Maximum heading error before capping
+d_offset: 0.0          # Goal offset from lane center (0 = center)
+
+# Integral Bounds (anti-windup)
+integral_bounds:
+  d:
+    top: 0.3
+    bot: -0.3
+  phi:
+    top: 1.2
+    bot: -1.2
+
+# Feedforward and Resolution
+omega_ff: 0.0          # Feedforward angular velocity term
+d_resolution: 0.011    # Resolution of lateral position estimate
+phi_resolution: 0.051  # Resolution of heading estimate
+
+# Verbosity (0=minimal, 1=detailed, 2=debug)
+verbose: 0
 
 # --- IPM + occupancy ---
 calibrated_homography:
