@@ -20,7 +20,11 @@
 
       <!-- 🔴 Feed projected segments input from line detector -->
       <remap from="~lineseglist_in"
-             to="/$(arg veh)/line_detector_node/segment_list"/>
+             to="/dragon/line_detector_node/segment_list"/>
+
+      <!-- Feed camera image to private "~image/compressed" -->
+      <remap from="~image/compressed"
+             to="/dragon/camera_node/image/compressed"/>
     </node>
   </group>
 </launch>

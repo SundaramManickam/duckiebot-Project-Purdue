@@ -12,6 +12,7 @@ from dt_computer_vision.ground_projection import GroundProjector
 from dt_computer_vision.camera.homography import Homography, HomographyToolkit
 
 
+
 import rospy
 from cv_bridge import CvBridge
 from duckietown_msgs.msg import Segment as SegmentMsg, SegmentList
@@ -222,11 +223,28 @@ class GroundProjectionNode(DTROS):
             self._first_processing_done = True
 
         if self.pub_debug_road_view_img.get_num_connections() > 0:
-            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(
-                debug_image(colored_segments,(300, 300), grid_size=6, s_segment_thickness=5)
+        
+            # Convert tuples → GroundPoint objects for debug_image()
+            formatted_segments = {}
+            for color, segs in colored_segments.items():
+                formatted_segments[color] = []
+                for (p1, p2) in segs:
+                    gp1 = GroundPoint(x=float(p1[0]), y=float(p1[1]))
+                    gp2 = GroundPoint(x=float(p2[0]), y=float(p2[1]))
+                    formatted_segments[color].append((gp1, gp2))
+        
+            debug_img = debug_image(
+                formatted_segments,
+                (300, 300),
+                grid_size=6,
+                s_segment_thickness=5
             )
+        
+            debug_image_msg = self.bridge.cv2_to_compressed_imgmsg(debug_img)
             debug_image_msg.header = seglist_out.header
             self.pub_debug_road_view_img.publish(debug_image_msg)
+        
+
 
     def load_extrinsics(self) -> Union[Homography, None]:
         """
